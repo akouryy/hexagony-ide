@@ -1,0 +1,21 @@
+#main {
+    display: flex;
+}
+
+.hexmap .source-char {
+    fill: #033;
+    font-size: 20px;
+    font-family: monospace;
+    text-anchor: middle;
+    dominant-baseline: middle;
+}
+
+.hexmap .source-char-bg {
+    fill: rgba(255, 255, 255, 0.9);
+}
+
+.hexmap .road {
+    stroke: rgba(0, 0, 0, 0.05);
+    stroke-linecap: round;
+    stroke-width: 5px;
+}

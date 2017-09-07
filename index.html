@@ -3,15 +3,21 @@
   <head>
     <title>Hexagony IDE</title>
     <meta charset="utf-8"/>
+    <link rel="stylesheet" href="style.css">
     <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
     <script src="js/hex-ide-fullopt.js"></script>
   </head>
   <body>
     <h1>Hexagony IDE</h1>
-    <div id="source">
-      <div class="src-raw"><textarea></textarea></div>
-      <div class="src-min"><textarea readonly="readonly"></textarea></div>
-      <div class="src-hex"><textarea readonly="readonly"></textarea></div>
-    </div>
+    <main id="main">
+      <div id="source">
+        <div class="src-raw"><textarea></textarea></div>
+        <div class="src-min"><textarea readonly="readonly"></textarea></div>
+        <div class="src-hex"><textarea readonly="readonly"></textarea></div>
+      </div>
+      <div id="hexmap-container">
+        <svg class="hexmap"></svg>
+      </div>
+    </main>
   </body>
 </html>
