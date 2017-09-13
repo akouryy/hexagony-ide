@@ -29,14 +29,14 @@ class HexMapView(val q: JQuery) {
         val qCharBG = Q("<circle>") attr Dict(
           "cx" -> x, "cy" -> y, "r" -> 10
         ) addClass "source-char-bg"
-        hexMap.roadPassed(j)(i) zip Hexagony.Directions foreach { case (p, (dy, dx)) => js.Dynamic.global.console.log(
+        hexMap.roadPassed(j)(i) zip Hexagony.Directions foreach { case (p, (dy, dx)) =>
           Q("<line>") attr Dict(
             "x1" -> x, "y1" -> y,
             "x2" -> (x + 25 * dx), "y2" -> (y + 21 * dy),
           ) css Dict(
             "stroke" -> (if(p) "rgba(255, 0, 0, 0.2)" else "rgba(0, 0, 0, 0.05)")
           ) addClass "road" appendTo qSVG
-        )}
+        }
         qCharBG appendTo qSVG
         qChar appendTo qSVG
       }

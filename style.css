@@ -2,6 +2,10 @@
     display: flex;
 }
 
+#source label, #source textarea, #run label, #run textarea {
+    display: block;
+}
+
 .hexmap .source-char {
     fill: #033;
     font-size: 20px;

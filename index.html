@@ -8,12 +8,25 @@
     <script src="js/hex-ide-fullopt.js"></script>
   </head>
   <body>
-    <h1>Hexagony IDE</h1>
+    <header>
+      <h1>Hexagony IDE</h1>
+    </header>
     <main id="main">
-      <div id="source">
-        <div class="src-raw"><textarea></textarea></div>
-        <div class="src-min"><textarea readonly="readonly"></textarea></div>
-        <div class="src-hex"><textarea readonly="readonly"></textarea></div>
+      <div id="io">
+        <div id="source">
+          <label class="src-raw">program<textarea></textarea></label>
+          <label class="src-min">minified<textarea readonly="readonly"></textarea></label>
+          <label class="src-hex">hexagonized<textarea readonly="readonly"></textarea></label>
+        </div>
+        <div id="run">
+          <label class="stdin">input<textarea></textarea></label>
+          <label class="stdout">output<textarea readonly="readonly"></textarea></label>
+          <button class="step" data-step="1">&gt;1</button>
+          <button class="step" data-step="10">&gt;10</button>
+          <button class="step" data-step="100">&gt;100</button><br/>
+          <button class="step" data-step="1000">&gt;1000</button>
+          <button class="step" data-step="10000">&gt;10000</button>
+        </div>
       </div>
       <div id="hexmap-container">
         <svg class="hexmap"></svg>

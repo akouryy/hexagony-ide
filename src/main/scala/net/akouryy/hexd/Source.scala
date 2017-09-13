@@ -48,6 +48,12 @@ class Source(val raw: String, sizeP: Option[Int]) {
   val hex = rowSpaceLengths zip hexRows map { case (s, l) =>
     l mkString(" " * s, " ", "")
   } mkString "\n"
+
+  def apply(y: Double, x: Double): Char = {
+    val j = y.toInt + size - 1
+    val i = (x + (rowSizes(j) - 1) * 0.5).toInt
+    hexRows(j)(i)
+  }
 }
 
 object Source {
