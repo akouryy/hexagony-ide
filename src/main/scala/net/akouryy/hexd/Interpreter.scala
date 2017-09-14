@@ -132,7 +132,7 @@ class Interpreter(
     pos = if(ch == '$') pos.copy(d = dn).step(positive).step(positive)
           else pos.copy(d = dn).step(positive)
 
-    (List(out, source.appliedPos(pos.y, pos.x) match { case (j, i) => (j, i, (pos.d + 3) % 6) }), true)
+    (List(source.appliedPos(pos.y, pos.x) match { case (j, i) => (j, i, (pos.d + 3) % 6) }, out), true)
   }
 }
 

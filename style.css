@@ -6,7 +6,7 @@
     display: block;
 }
 
-.hexmap .source-char {
+.hexmap .raw-char {
     fill: #033;
     font-size: 20px;
     font-family: monospace;
@@ -14,8 +14,44 @@
     dominant-baseline: middle;
 }
 
-.hexmap .source-char-bg {
-    fill: rgba(255, 255, 255, 0.9);
+.hexmap .raw-char-bg {
+    fill: #fff;
+}
+
+.hexmap .raw-char-error {
+    fill: #f00;
+}
+
+.hexmap .source-mirror {
+    stroke: #666;
+    stroke-width: 7px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: #fff;
+}
+
+@keyframes raw-char-bg-blink {
+    0% { fill: #fdd; }
+    49% { fill: #fdd; }
+    50% { fill: #fff; }
+    100% { fill: #fff; }
+}
+
+@keyframes source-mirror-blink {
+    0% { stroke: #fcc; }
+    49% { stroke: #fcc; }
+    50% { stroke: #666; }
+    100% { stroke: #666; }
+}
+
+.hexmap .char.current .raw-char-bg {
+    animation: raw-char-bg-blink 1s infinite;
+    fill: #fdd;
+}
+
+.hexmap .char.current.source-mirror {
+    animation: source-mirror-blink 1s infinite;
+    stroke: #fcc;
 }
 
 .hexmap .road {
@@ -23,6 +59,6 @@
     stroke-width: 5px;
 }
 
-.hexmap .road.unvisited {
+.hexmap .road.uncolored {
     stroke: rgba(0, 0, 0, 0.05);
 }
