@@ -1,17 +1,27 @@
 package net.akouryy.hexd
 
+import collection.mutable
 import scala.scalajs.js
 import js.Dynamic.global
 import org.scalajs.jquery.{jQuery => Q, _}
 
-class InterpreterView(val q: JQuery) {
+class InterpreterView(val q: JQuery, onExecutedEvent0: Seq[List[(Int, Int, Int)] => Unit] = Seq()) {
   private[this] val qIn = q find ".stdin > textarea" on ("input", () => updateInterpreter())
   private[this] val qOut = q find ".stdout > textarea"
 
   q find ".step" on("click", (ev: JQueryEventObject) => {
-    val running = 1 to Q(ev.target).data("step").asInstanceOf[Int] forall { _ => interpreter.next() }
+    val (passed, running) =
+      ((List[(Int, Int, Int)](), true) /: (1 to Q(ev.target).data("step").asInstanceOf[Int])) { (g, _) =>
+        g match {
+          case (p, false) => (p, false)
+          case (p, true) =>
+            val (q, r) = interpreter.next()
+            (q ::: p, r)
+        }
+      }
 
-    import js.JSConverters._
+    onExecutedEvent foreach (_ apply passed)
+
     global.console.log(interpreter.pos.toString, interpreter.mempos.toString, interpreter.memory(interpreter.mempos))
 
     if(!running) {
@@ -21,6 +31,7 @@ class InterpreterView(val q: JQuery) {
 
   var source: Source = _ // initialized in onSourceChanged (by SourceView#updateSource)
   var interpreter: Interpreter = _
+  val onExecutedEvent = mutable.Set[List[(Int, Int, Int)] => Unit](onExecutedEvent0: _*)
 
   def onSourceChanged(s: Source) {
     source = s
@@ -47,8 +58,10 @@ class Interpreter(
 
   var inputList: List[Char] = input.toList
 
-  def next(): Boolean = {
-    source(pos.y, pos.x) match {
+  def next(): (List[(Int, Int, Int)], Boolean) = {
+    val ch = source(pos.y, pos.x)
+
+    ch match {
       case ')' => memory(mempos) += 1
       case '(' => memory(mempos) -= 1
       case '+' => memory(mempos) = memory(mempos.left) + memory(mempos.right)
@@ -92,30 +105,34 @@ class Interpreter(
       case c if ('a' to 'z') ++ ('A' to 'Z') contains c =>
         memory(mempos) = c
 
-      case '@' => return false
+      case '@' => return (Nil, false)
       case _ =>
     }
 
     val positive = memory(mempos) > 0
 
-    pos = source(pos.y, pos.x) match {
-      case '$' => pos.step(positive).step(positive)
-      case '_' => pos.copy(d = Hexagony.UnderscoreDirection(pos.d)).step(positive)
-      case '|' => pos.copy(d = Hexagony.BarDirection       (pos.d)).step(positive)
-      case '/' => pos.copy(d = Hexagony.SlashDirection     (pos.d)).step(positive)
-      case '\\'=> pos.copy(d = Hexagony.BSlashDirection    (pos.d)).step(positive)
+    val dn = ch match {
+      case '_' => Hexagony.UnderscoreDirection(pos.d)
+      case '|' => Hexagony.BarDirection(pos.d)
+      case '/' => Hexagony.SlashDirection(pos.d)
+      case '\\'=> Hexagony.BSlashDirection(pos.d)
       case '<' => (Hexagony.LessDirection(pos.d): @unchecked) match {
-        case Seq(d) => pos.copy(d = d).step(positive)
-        case Seq(l, r) => pos.copy(d = if(memory(mempos) > 0) r else l).step(positive)
+        case Seq(d) => d
+        case Seq(l, r) => if(positive) r else l
       }
       case '>' => (Hexagony.GreaterDirection(pos.d): @unchecked) match {
-        case Seq(d) => pos.copy(d = d).step(positive)
-        case Seq(l, r) => pos.copy(d = if(memory(mempos) > 0) r else l).step(positive)
+        case Seq(d) => d
+        case Seq(l, r) => if(positive) r else l
       }
-      case _ => pos.step(positive)
+      case _ => pos.d
     }
 
-    true
+    val out = source.appliedPos(pos.y, pos.x) match { case (j, i) => (j, i, dn) }
+
+    pos = if(ch == '$') pos.copy(d = dn).step(positive).step(positive)
+          else pos.copy(d = dn).step(positive)
+
+    (List(out, source.appliedPos(pos.y, pos.x) match { case (j, i) => (j, i, (pos.d + 3) % 6) }), true)
   }
 }
 

@@ -6,7 +6,8 @@ object HexagonyIDE {
     Q(() => {
       val hexMapView = new HexMapView(Q("#hexmap-container"))
 
-      val interpreterView = new InterpreterView(Q("#run"))
+      val interpreterView = new InterpreterView(Q("#run"),
+        Seq(hexMapView.onExecuted))
 
       val source = new SourceView(Q("#source"),
         Seq(hexMapView.onSourceChanged, interpreterView.onSourceChanged))

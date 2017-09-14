@@ -5,4 +5,5 @@ This tool allows you to develop [Hexagony](https://github.com/m-ender/hexagony) 
 - [x] Minify/Hexagonize Hexagony programs.
 - [x] Interpret them.
 - [ ] Debug them.
-- [ ] Visualize IP moves and memory access.
+- [x] Visualize IP moves
+- [ ] ...and memory access.

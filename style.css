@@ -19,7 +19,10 @@
 }
 
 .hexmap .road {
-    stroke: rgba(0, 0, 0, 0.05);
     stroke-linecap: round;
     stroke-width: 5px;
+}
+
+.hexmap .road.unvisited {
+    stroke: rgba(0, 0, 0, 0.05);
 }

@@ -1,6 +1,9 @@
 package net.akouryy.hexd
+
+import collection.mutable
 import scala.scalajs.js
 import js.{Dictionary => Dict}
+import js.Dynamic.global
 import org.scalajs.jquery.{jQuery => Q, _}
 
 class HexMapView(val q: JQuery) {
@@ -29,13 +32,11 @@ class HexMapView(val q: JQuery) {
         val qCharBG = Q("<circle>") attr Dict(
           "cx" -> x, "cy" -> y, "r" -> 10
         ) addClass "source-char-bg"
-        hexMap.roadPassed(j)(i) zip Hexagony.Directions foreach { case (p, (dy, dx)) =>
+        Hexagony.Directions.zipWithIndex foreach { case ((dy, dx), d) =>
           Q("<line>") attr Dict(
             "x1" -> x, "y1" -> y,
             "x2" -> (x + 25 * dx), "y2" -> (y + 21 * dy),
-          ) css Dict(
-            "stroke" -> (if(p) "rgba(255, 0, 0, 0.2)" else "rgba(0, 0, 0, 0.05)")
-          ) addClass "road" appendTo qSVG
+          ) addClass s"road road-${j}-${i}-${d} unvisited" appendTo qSVG
         }
         qCharBG appendTo qSVG
         qChar appendTo qSVG
@@ -44,14 +45,35 @@ class HexMapView(val q: JQuery) {
 
     qSVG html qSVG.html
   }
+
+  def onExecuted(passed: List[(Int, Int, Int)]) {
+    passed foreach { case (y, x, d) =>
+      hexMap.roadPassed(y)(x)(d) += 1
+    }
+    updateRoad()
+  }
+
+  def updateRoad() {
+    hexMap.roadPassed.zipWithIndex foreach { case (r, j) =>
+      r.zipWithIndex foreach { case (c, i) =>
+        c.zipWithIndex foreach { case (e, d) =>
+          if(e != 0) {
+            qSVG find s".road-${j}-${i}-${d}" attr Dict(
+              "stroke" -> s"hsl(${Math.log(e + 1) * 270.0 / hexMap.logmax}, 100%, 50%)",
+              "title" -> s"passed ${e} times",
+            ) removeClass "unvisited"
+          }
+        }
+      }
+    }
+    qSVG html qSVG.html
+  }
 }
 
 class HexMap(val source: Source) {
-  val rand = (js.Math.random() * 6).toInt
-  val roadPassed: IndexedSeq[IndexedSeq[IndexedSeq[Boolean]]] = source.hexRows map {
-    _ map { c =>
-      val next = Hexagony.nextDirectionPossible(c, rand)
-      0 to 5 map next.contains
-    }
+  val roadPassed: IndexedSeq[IndexedSeq[mutable.IndexedSeq[Int]]] = source.hexRows map {
+    _ map { _ => mutable.IndexedSeq.fill(6)(0) }
   }
+
+  def logmax: Double = roadPassed.map(_.map(_.map(e => Math.log(e + 1)).max).max).max
 }

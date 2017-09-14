@@ -49,9 +49,14 @@ class Source(val raw: String, sizeP: Option[Int]) {
     l mkString(" " * s, " ", "")
   } mkString "\n"
 
-  def apply(y: Double, x: Double): Char = {
+  def appliedPos(y: Double, x: Double): (Int, Int) = {
     val j = y.toInt + size - 1
     val i = (x + (rowSizes(j) - 1) * 0.5).toInt
+    (j, i)
+  }
+
+  def apply(y: Double, x: Double): Char = {
+    val (j, i) = appliedPos(y, x)
     hexRows(j)(i)
   }
 }
