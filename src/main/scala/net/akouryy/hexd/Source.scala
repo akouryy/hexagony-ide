@@ -34,9 +34,9 @@ class Source(val raw: String, sizeP: Option[Int]) {
     (trimmed padTo(Source.minLength(size), '.'), size)
   }
 
-  val rowSizes = (size until size*2) ++ (size*2-2 to size by -1)
+  val rowSizes = Hexagon.rowSizes(size)
 
-  val rowSpaceLengths = rowSizes map (size * 2 - 1 - _)
+  val rowSpaceLengths = Hexagon.rowLeftPaddings(size)
 
   val hexRows =
     if(size > 0){
@@ -49,14 +49,9 @@ class Source(val raw: String, sizeP: Option[Int]) {
     l mkString(" " * s, " ", "")
   } mkString "\n"
 
-  def appliedPos(y: Double, x: Double): (Int, Int) = {
-    val j = y.toInt + size - 1
-    val i = (x + (rowSizes(j) - 1) * 0.5).toInt
-    (j, i)
-  }
 
-  def apply(y: Double, x: Double): Char = {
-    val (j, i) = appliedPos(y, x)
+  def apply(y: VY[Int], x: VX[Int]): Char = {
+    val (j, i) = Hexagon.coordToIndex(y, x, size)
     hexRows(j)(i)
   }
 }

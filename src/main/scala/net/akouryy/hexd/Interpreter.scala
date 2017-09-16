@@ -1,28 +1,23 @@
 package net.akouryy.hexd
 
 import collection.mutable
+
+import shapeless.{:: => #:, _}
+import syntax.std.tuple._
+import tag.@@
+
 import scala.scalajs.js
 import js.Dynamic.global
 import org.scalajs.jquery.{jQuery => Q, _}
 
-class InterpreterView(val q: JQuery, onExecutedEvent0: Seq[List[(Int, Int, Int)] => Unit] = Seq()) {
+class InterpreterView(val q: JQuery, onExecutedEvent0: Seq[List[IP] => Unit] = Seq()) {
   private[this] val qIn = q find ".stdin > textarea" on ("input", () => updateInterpreter())
   private[this] val qOut = q find ".stdout > textarea"
 
   q find ".step" on("click", (ev: JQueryEventObject) => {
-    val (passed, running) =
-      ((List[(Int, Int, Int)](), true) /: (1 to Q(ev.target).data("step").asInstanceOf[Int])) { (g, _) =>
-        g match {
-          case (p, false) => (p, false)
-          case (p, true) =>
-            val (q, r) = interpreter.next()
-            (q ::: p, r)
-        }
-      }
+    val (passed, running) = interpreter step Q(ev.target).data("step").asInstanceOf[Int]
 
     onExecutedEvent foreach (_ apply passed)
-
-    global.console.log(interpreter.pos.toString, interpreter.mempos.toString, interpreter.memory(interpreter.mempos))
 
     if(!running) {
       global.alert("execution done.");
@@ -31,7 +26,7 @@ class InterpreterView(val q: JQuery, onExecutedEvent0: Seq[List[(Int, Int, Int)]
 
   var source: Source = _ // initialized in onSourceChanged (by SourceView#updateSource)
   var interpreter: Interpreter = _
-  val onExecutedEvent = mutable.Set[List[(Int, Int, Int)] => Unit](onExecutedEvent0: _*)
+  val onExecutedEvent = mutable.Set[List[IP] => Unit](onExecutedEvent0: _*)
 
   def onSourceChanged(s: Source) {
     source = s
@@ -46,19 +41,17 @@ class InterpreterView(val q: JQuery, onExecutedEvent0: Seq[List[(Int, Int, Int)]
 }
 
 class Interpreter(
-  val source: Source,
+  private[this] val source: Source,
   input: String,
-  val output: String => Unit,
-  val memory: Memory = new Memory(),
-  var pos: IP = null,
-  var mempos: MemoryPosition = MemoryPosition(0, 0, 0),
+  private[this] val output: String => Unit,
 ) {
-  pos = IP(1 - source.size, (1 - source.size) / 2.0, 2, source.size)
+  private[this] var pos: IP = IP(VY(1 - source.size), VX(1 - source.size), Direction(2), source.size)
+  private[this] val memory: Memory = new Memory()
+  private[this] var mempos: MemoryPosition = MemoryPosition(VY(0), VX(0), Direction(0))
 
+  private[this] var inputList: List[Char] = input.toList
 
-  var inputList: List[Char] = input.toList
-
-  def next(): (List[(Int, Int, Int)], Boolean) = {
+  def next(): Option[List[IP]] = {
     val ch = source(pos.y, pos.x)
 
     ch match {
@@ -105,78 +98,70 @@ class Interpreter(
       case c if ('a' to 'z') ++ ('A' to 'Z') contains c =>
         memory(mempos) = c
 
-      case '@' => return (Nil, false)
+      case '@' => return None
       case _ =>
     }
 
-    val positive = memory(mempos) > 0
+    implicit val positive = tag[IP].apply(memory(mempos) > 0)
 
     val dn = ch match {
-      case '_' => Hexagony.UnderscoreDirection(pos.d)
-      case '|' => Hexagony.BarDirection(pos.d)
-      case '/' => Hexagony.SlashDirection(pos.d)
-      case '\\'=> Hexagony.BSlashDirection(pos.d)
-      case '<' => (Hexagony.LessDirection(pos.d): @unchecked) match {
-        case Seq(d) => d
-        case Seq(l, r) => if(positive) r else l
-      }
-      case '>' => (Hexagony.GreaterDirection(pos.d): @unchecked) match {
-        case Seq(d) => d
-        case Seq(l, r) => if(positive) r else l
-      }
+      case '_' => pos.d.`_`
+      case '|' => pos.d.|
+      case '/' => pos.d./
+      case '\\'=> pos.d.\
+      case '<' => pos.d.<(positive)
+      case '>' => pos.d.>(positive)
       case _ => pos.d
     }
 
-    val out = source.appliedPos(pos.y, pos.x) match { case (j, i) => (j, i, dn) }
+    val outPos = pos.copy(d = dn)
 
-    pos = if(ch == '$') pos.copy(d = dn).step(positive).step(positive)
-          else pos.copy(d = dn).step(positive)
+    pos = if(ch == '$') outPos.step.step else outPos.step
 
-    (List(source.appliedPos(pos.y, pos.x) match { case (j, i) => (j, i, (pos.d + 3) % 6) }, out), true)
+    Some(List(pos.copy(d = pos.d + 3), outPos))
+  }
+
+  def step(s: Int) = {
+    val res = ((List[IP](), true) /: (1 to s)) { (g, _) =>
+      g match {
+        case (p, false) => (p, false)
+        case (p, true) =>
+          next() match {
+            case Some(q) => (q ::: p, true)
+            case None => (p, false)
+          }
+      }
+    }
+    global.console.log(pos.toString, mempos.toString, memory(mempos))
+    res
   }
 }
 
-case class IP(y: Int, x: Double, d: Int, size: Int) {
-  def step(positive: Boolean) = {
+case class IP(y: VY[Int], x: VX[Int], d: Direction, size: Int) {
+  def step(implicit positive: IP.Positive) = {
     val s1 = size - 1
+    val sx = DX(s1)
+    val sy = DY(s1)
 
-    val yn = y + IP.DY(d)
-    val xn = x + IP.DX(d)
-    val (yt, xt): (Int, Double) = (
-      x == -s1 - y * 0.5, y == -s1, x ==  s1 + y * 0.5,
-      x ==  s1 - y * 0.5, y ==  s1, x == -s1 + y * 0.5, d
-    ) match {
-      case (true, true, _, _, _, _, 0) => IP.edge(s1, if(positive) 2 else 4)
-      case (_, true, true, _, _, _, 1) => IP.edge(s1, if(positive) 3 else 5)
-      case (_, _, true, true, _, _, 2) => IP.edge(s1, if(positive) 4 else 0)
-      case (_, _, _, true, true, _, 3) => IP.edge(s1, if(positive) 5 else 1)
-      case (_, _, _, _, true, true, 4) => IP.edge(s1, if(positive) 0 else 2)
-      case (true, _, _, _, _, true, 5) => IP.edge(s1, if(positive) 1 else 3)
-      case (true, _, _, _, _, _, 5 | 0) => (y + s1, x + s1 * 1.5)
-      case (_, true, _, _, _, _, 0 | 1) => (y + s1 * 2, x)
-      case (_, _, true, _, _, _, 1 | 2) => (y + s1, x - s1 * 1.5)
-      case (_, _, _, true, _, _, 2 | 3) => (y - s1, x - s1 * 1.5)
-      case (_, _, _, _, true, _, 3 | 4) => (y - s1 * 2, x)
-      case (_, _, _, _, _, true, 4 | 5) => (y - s1, x + s1 * 1.5)
-      case _ => (yn, xn)
-    }
-    IP(yt, xt, d, size)
+    val boundaryConds = Seq(
+      x.v == -(y + sy * 2).v, y == VY(0) - sy, x.v == (y + sy * 2).v,
+      x.v == -(y - sy * 2).v, y == VY(0) + sy, x.v == (y - sy * 2).v,
+    )
+
+    (IP.apply _).tupled((
+      if(boundaryConds(d.dir) && boundaryConds((d + 1).dir)) {
+        Hexagon.corner(size, if(positive) d + 2 else d + 4)
+      } else if(boundaryConds(d.dir)) {
+        (y + Hexagon.dx(d + 1).axis[Ys] * s1, x + Hexagon.dy(d + 1).axis[Xs] * -3 * s1)
+      } else if(boundaryConds((d + 1).dir)) {
+        (y + Hexagon.dx(d + 2).axis[Ys] * s1, x + Hexagon.dy(d + 2).axis[Xs] * -3 * s1)
+      } else {
+        (y + Hexagon.dy(d), x + Hexagon.dx(d))
+      } 
+    ) ++ (d, size))
   }
-
-  def left  = IP(y, x, (d - 1) % 6, size)
-  def right = IP(y, x, (d + 1) % 6, size)
 }
 
 object IP {
-  val DY = IndexedSeq(-1, -1, 0, 1, 1, 0)
-  val DX = IndexedSeq(-0.5, 0.5, 1, 0.5, -0.5, -1)
-
-  def edge(s1: Int, d: Int): (Int, Double) = d match {
-    case 0 => (-s1, s1 * -0.5)
-    case 1 => (-s1, s1 * 0.5)
-    case 2 => (0, s1)
-    case 3 => (s1, s1 * 0.5)
-    case 4 => (s1, s1 * -0.5)
-    case 5 => (0, -s1)
-  }
+  type Positive = Boolean @@ IP
 }

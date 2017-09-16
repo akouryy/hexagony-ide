@@ -2,30 +2,33 @@ package net.akouryy.hexd
 
 import collection.mutable
 
+import shapeless._
+import syntax.std.tuple._
+
 class Memory {
-  private[this] val memory = mutable.HashMap[(Int, Int, Int), Long]()
-  def apply(p: MemoryPosition): Long = memory.getOrElse((p.y, p.x, p.d % 3), 0)
-  def update(p: MemoryPosition, v: Long) { memory((p.y, p.x, p.d % 3)) = v }
+  private[this] val memory = mutable.HashMap[(VY[Int], VX[Int], Int), Long]()
+  def apply(p: MemoryPosition): Long = memory.getOrElse((p.y, p.x, p.d.dir % 3), 0)
+  def update(p: MemoryPosition, v: Long) { memory((p.y, p.x, p.d.dir % 3)) = v }
 }
 
-case class MemoryPosition(y: Int, x: Int, d: Int) {
-  def rev = copy(d = (d + 3) % 6)
+case class MemoryPosition(y: VY[Int], x: VX[Int], d: Direction) {
+  def rev = copy(d = d + 3)
 
-  def right = d match {
-    case 0 => MemoryPosition(y,   x,   1)
-    case 1 => MemoryPosition(y,   x,   2)
-    case 2 => MemoryPosition(y-1, x+1, 3)
-    case 3 => MemoryPosition(y+2, x,   4)
-    case 4 => MemoryPosition(y+1, x-1, 5)
-    case 5 => MemoryPosition(y-2, x,   0)
-  }
+  def right = MemoryPosition.tupled((d.dir match {
+    case 0 => (y, x)
+    case 1 => (y, x)
+    case 2 => (y - DY(1), x + DX(1))
+    case 3 => (y + DY(2), x)
+    case 4 => (y + DY(1), x - DX(1))
+    case 5 => (y - DY(2), x)
+  }) :+ d + 1)
 
-  def left = d match {
-    case 0 => MemoryPosition(y+1, x-1, 5)
-    case 1 => MemoryPosition(y-2, x,   0)
-    case 2 => MemoryPosition(y-1, x+1, 1)
-    case 3 => MemoryPosition(y+2, x,   2)
-    case 4 => MemoryPosition(y,   x,   3)
-    case 5 => MemoryPosition(y,   x,   4)
-  }
+  def left = MemoryPosition.tupled((d.dir match {
+    case 0 => (y + DY(1), x - DX(1))
+    case 1 => (y - DY(2), x)
+    case 2 => (y - DY(1), x + DX(1))
+    case 3 => (y + DY(2), x)
+    case 4 => (y, x)
+    case 5 => (y, x)
+  }) :+ d - 1)
 }
