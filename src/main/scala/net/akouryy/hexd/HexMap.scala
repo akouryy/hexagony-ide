@@ -16,12 +16,11 @@ import ops.hlist._
 class HexMapView(
   private[this] val q: JQuery,
   private[this] val qi: JQuery,
-  private[this] val cellWidth: Double
+  private[this] val cellWidth: RX[Double]
 ) {
-  private[this] val cellHeight: Double = cellWidth * Math.sqrt(3) / 2
-  private[this] val circleSize: Double = cellWidth / 5
-  private[this] val circleX: DX[Double] = DX(10 / cellWidth * 2)
-  private[this] val circleY: DY[Double] = DY(10 / cellHeight)
+  private[this] val circleSize: Double = (cellWidth / 5).r
+  private[this] val circleX: DX[Double] = DX(0.4)
+  private[this] val circleY: DY[Double] = DY(0.2)
 
   private[this] var size: Int = _ // tag[Source].apply(source.size)
   private[this] var diagonalSize: Int = _ // size * 2 - 1
@@ -40,8 +39,8 @@ class HexMapView(
 
     hexMap = new HexMap(source)
 
-    val height = diagonalSize * cellHeight
-    val width = diagonalSize * cellWidth
+    val height = diagonalSize * svgs.cellHeight.r
+    val width = diagonalSize * cellWidth.r
     qSVG(0) setAttribute("viewBox", s"0 0 $width $height")
     qSVG attr Dict("width" -> width, "height" -> height)
 
@@ -61,19 +60,20 @@ class HexMapView(
           case '_' =>
             svgs.qLine(y, x - circleX, y, x + circleX) addClass "source-mirror"
           case '|' =>
-            svgs.qLine(y - circleY, x, y + circleY, x) addClass "source-mirror"
+            val cy = circleY * 2 / Math.sqrt(3)
+            svgs.qLine(y - cy, x, y + cy, x) addClass "source-mirror"
           case '/' | '\\' =>
             val s = RY(if(c == '/') +1 else -1)
             svgs.qLine(
-              y + s * circleY * Math.sqrt(3) / 2, x - circleX * 0.5,
-              y - s * circleY * Math.sqrt(3) / 2, x + circleX * 0.5,
+              y + s * circleY, x - circleX * 0.5,
+              y - s * circleY, x + circleX * 0.5,
             ) addClass "source-mirror"
           case '<' | '>' =>
             val s = RX(if(c == '<') +1 else -1)
             svgs.qPath(
-              'M' -> Seq((y - circleY * Math.sqrt(3) / 2, x + s * circleX / 2)),
-              'L' -> Seq((y,                              x - s * circleX)),
-              'L' -> Seq((y + circleY * Math.sqrt(3) / 2, x + s * circleX / 2)),
+              'M' -> Seq((y - circleY, x + s * circleX / 2)),
+              'L' -> Seq((y,           x - s * circleX)),
+              'L' -> Seq((y + circleY, x + s * circleX / 2)),
             ) addClass "source-mirror"
 
           case '[' | ']' | '#' =>

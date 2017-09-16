@@ -8,12 +8,12 @@ import shapeless._
 import syntax.std.tuple._
 import ops.hlist.Mapper
 
-class SVGs(private[this] val size: Int, private[this] val cellWidth: Double) {
-  private[this] val cellHeight = cellWidth * Math.sqrt(3) / 2
+class SVGs(private[this] val size: Int, private[this] val cellWidth: RX[Double]) {
+  val cellHeight = (cellWidth * Math.sqrt(3) / 2).axis[Ys]
 
-  def realCoord(y: VY[Double], x: VX[Double]): (VY[Double], VX[Double]) =(
-    VY((size - 0.5) * cellHeight) + (y - VY(0)) * cellHeight,
-    VX((size - 0.5) * cellWidth) + (x - VX(0)) * 0.5 * cellWidth,
+  def realCoord(y: VY[Double], x: VX[Double]): (VY[Double], VX[Double]) = (
+    VY(0) + (DY(size - 0.5) + (y - VY(0))) * cellHeight,
+    VX(0) + (DX(size - 0.5) + (x - VX(0)) * 0.5) * cellWidth,
   )
   def realCoord(p: (VY[Double], VX[Double])): (VY[Double], VX[Double]) = realCoord(p._1, p._2)
 

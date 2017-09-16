@@ -17,7 +17,7 @@ object HexagonyIDE {
           global.btoa(Q("#run .stdin textarea").value)
       }, 1000)
 
-      val hexMapView = new HexMapView(Q("#hexmap-container"), Q("#map-io"), 50)
+      val hexMapView = new HexMapView(Q("#hexmap-container"), Q("#map-io"), RX(50))
 
       val interpreterView = new InterpreterView(Q("#run"),
         Seq(hexMapView.onExecuted))
