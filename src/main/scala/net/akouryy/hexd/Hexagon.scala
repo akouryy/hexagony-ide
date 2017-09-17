@@ -43,8 +43,8 @@ case class Direction(dir: Int) extends AnyVal {
   }
   def -(e: Int) = this + -e
 
-  @inline private[this] def reduced1(e: Int) = if(e < 6) e else e - 6
-  @inline private[this] def reducedDirection1(e: Int) = Direction(reduced1(e))
+  private[this] def reduced1(e: Int) = if(e < 6) e else e - 6
+  private[this] def reducedDirection1(e: Int) = Direction(reduced1(e))
 
   def rev = reducedDirection1(dir + 3)
 

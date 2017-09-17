@@ -39,10 +39,11 @@ class HexMapView(
 
     hexMap = new HexMap(source)
 
-    val height = diagonalSize * svgs.cellHeight.r
-    val width = diagonalSize * cellWidth.r
-    qSVG(0) setAttribute("viewBox", s"0 0 $width $height")
-    qSVG attr Dict("width" -> width, "height" -> height)
+    locally {
+      val height = Math.max(diagonalSize, 5) * svgs.cellHeight.r
+      val width = Math.max(diagonalSize, 5) * cellWidth.r
+      qSVG(0) setAttribute("viewBox", s"0 0 $width $height")
+    }
 
     qSVG.empty()
 
@@ -100,8 +101,8 @@ class HexMapView(
       val d = dir.dir
       hexMap.visitCount(j)(i)(d) += 1
       hexMap.firstVisit(j)(i)(d) = hexMap.firstVisit(j)(i)(d) orElse {
-        hexMap.firstVisitMax += 1
-        Some(hexMap.firstVisitMax)
+        hexMap.firstVisitCount += 1
+        Some(hexMap.firstVisitCount - 1)
       }
     }
     passed.headOption foreach { case IP(y, x, _, _) =>
@@ -118,17 +119,17 @@ class HexMapView(
       if(e == 0)
         None
       else
-        Some(s"hsl(${Math.log(e) * 270.0 / hexMap.logmaxVisitCount}, 100%, 50%)")
+        Some(s"hsl(${(e - 1) * 270.0 / Math.max(1, hexMap.visitCountMax - 1)}, 100%, 50%)")
     }
     val firstVisit: (Int, Int, Int) => Option[String] = { (j, i, d) =>
       hexMap.firstVisit(j)(i)(d) map { e =>
-        s"hsl(${e * 270.0 / hexMap.firstVisitMax}, 100%, 50%)"
+        s"hsl(${e * 270.0 / (hexMap.firstVisitCount - 1)}, 100%, 50%)"
       }
     }
     qi find ".colorfn-visit-count" click { () => colorFn = visitCount; updateRoad() }
     qi find ".colorfn-first-visit" click { () => colorFn = firstVisit; updateRoad() }
 
-    visitCount
+    firstVisit
   }
 
   def updateRoad() {
@@ -161,7 +162,7 @@ class HexMap(val source: Source) {
         mutable.IndexedSeq.fill(6)(0)
       )
     )
-  def logmaxVisitCount: Double = Math.log(visitCount.map(_.map(_.max).max).max + 1)
+  def visitCountMax: Double = visitCount.map(_.map(_.max).max).max
 
   val firstVisit: IndexedSeq[IndexedSeq[mutable.IndexedSeq[Option[Int]]]] =
     IndexedSeq.tabulate(source.size * 2 - 1)(j =>
@@ -169,5 +170,5 @@ class HexMap(val source: Source) {
         mutable.IndexedSeq.fill(6)(None)
       )
     )
-  var firstVisitMax = 0
+  var firstVisitCount = 0
 }

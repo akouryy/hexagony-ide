@@ -6,6 +6,19 @@
     display: block;
 }
 
+#hexmap-container {
+    width: 600px;
+    min-width: 400px;
+    max-width: 100%;
+    resize: both;
+    overflow: auto;
+}
+
+#hexmap-container .hexmap {
+    width: 100%;
+    object-fit: contain;
+}
+
 .hexmap .raw-char {
     fill: #033;
     font-size: 20px;
